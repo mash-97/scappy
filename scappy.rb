@@ -3,7 +3,16 @@ require 'rest-client'
 require 'axlsx'
 require 'commander/import'
 
-URL = ->(page_no, per_page){"https://www.upwork.com/nx/search/jobs/?sort=recency&page=#{page_no}&per_page=#{per_page}"}
+URL = ->(**hash){
+  base_url_str = "https://www.upwork.com/nx/search/jobs/"
+  url_strs = []
+  url_strs << "sort=recency"
+  url_strs << "page=#{hash[:page_no]}" if hash[:page_no]
+  url_strs << "per_page=#{hash[:per_page]}" if hash[:per_page]
+  url_strs << "category2_uid=#{hash[:category]}" if hash[:category]
+  url_strs << "subcategory2_uid=#{hash[:sub_category]}" if hash[:sub_category]
+  [base_url_str, url_strs.join('&')].join('?')
+}
 $AP = Axlsx::Package.new
 
 def get_nokogorized_page(url)
@@ -71,6 +80,7 @@ end
 
 # program starts here
 if $0==__FILE__ then
+  puts("Start Time: #{Time.now}")
   program :name, 'Scappy'
   program :version, '0.0.1'
   program :description, 'Job scrapping from UpWork'
@@ -84,18 +94,25 @@ if $0==__FILE__ then
     c.option '--start_page PAGE_NO', Integer, 'start page'
     c.option '--end_page PAGE_NO', Integer, 'end page'
     c.option '--per_page NUM', Integer, 'articles per page'
+    c.option '--category UIDS', String, 'category UIDS'
 
     c.action do |args, options|
-      options.default :start_page => '1', :end_page => '1', :per_page => 10
+      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => ""
       sp = options.start_page 
       ep = options.end_page 
-      puts("Starting with options: #{sp}, #{ep}")
 
       (sp.to_i..ep.to_i).each do |page_no|
+
         print("At page: #{page_no} => ")
         articles = []
         begin 
-          noko_page = get_nokogorized_page(URL.call(page_no, options.per_page))
+          url = URL.call(
+            page_no: page_no, 
+            per_page: options.per_page, 
+            category: options.category.strip.split(',').map(&:strip).first
+          )
+          print("url: #{url} => ")
+          noko_page = get_nokogorized_page(url)
           narticles = get_narticles(noko_page)
           narticles.each do |narticle|
             articles << parse_narticle(narticle)
@@ -112,5 +129,6 @@ if $0==__FILE__ then
       $AP.serialize('output.xlsx')
     end
   end
+  puts("End Time: #{Time.now}")
 end
 
