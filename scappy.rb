@@ -51,6 +51,7 @@ end
 # narticle => nokogorized article
 def parse_narticle(narticle)
   {
+    "scrap-timestamp": Time.now.utc.to_s,
     "job-title" => parse_JobTileHeader(narticle),
     "job-info-list" => parse_JobTileInfoList(narticle).join(' -- '),
     "job-description" => parse_JobTileDescription(narticle),
@@ -60,7 +61,7 @@ end
 
 def update_to_excel(articles, page_no)
   $AP.workbook.add_worksheet(name: "PAGE #{page_no}") do |sheet|
-    sheet.add_row articles.first.keys()
+    sheet.add_row articles.first.keys().map(&:upcase)
     articles.each do |article|
       sheet.add_row article.values()
     end
