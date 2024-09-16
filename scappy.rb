@@ -95,9 +95,11 @@ if $0==__FILE__ then
     c.option '--end_page PAGE_NO', Integer, 'end page'
     c.option '--per_page NUM', Integer, 'articles per page'
     c.option '--category UIDS', String, 'category UIDS'
+    c.option '--output FILENAME', String, 'output filename'
+
 
     c.action do |args, options|
-      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => ""
+      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx"
       sp = options.start_page 
       ep = options.end_page 
 
@@ -126,7 +128,7 @@ if $0==__FILE__ then
       end
 
       puts("write to excel")
-      $AP.serialize('output.xlsx')
+      $AP.serialize(options.output)
     end
   end
   puts("End Time: #{Time.now}")
