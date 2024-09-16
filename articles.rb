@@ -1,17 +1,18 @@
 require 'nokogiri'
 require 'rest-client'
 
+$CLIENT = RestClient
 class Articles
   class << self
-    def get_articles(url, client=RestClient)
-      noko_page = get_nokogorized_page(url, client)
+    def get_articles(url)
+      noko_page = get_nokogorized_page(url)
       narticles = get_narticles(noko_page)
       narticles.collect{|narticle| parse_narticle(narticle)}
     end
     
     private
-    def get_nokogorized_page(url, client)
-      response = client.get(url)
+    def get_nokogorized_page(url)
+      response = $CLIENT.get(url)
       if response.code==200 then
         return Nokogiri::HTML(response.body)
       end
