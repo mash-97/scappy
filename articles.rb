@@ -16,7 +16,7 @@ class Articles
       if response.code==200 then
         return Nokogiri::HTML(response.body)
       end
-      # exit(1)
+      Nokogiri::HTML('')
     end
 
     def get_narticles(noko_page)
