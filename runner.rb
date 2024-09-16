@@ -11,7 +11,7 @@ puts("> Start of the runner script")
 s = Time.now
 categories.each do |k, v|
   puts(">> start process for: #{k}")
-  system("ruby scappy.rb scrap --start_page 1 --end_page 2 --category #{v} --output '#{k}.xlsx'")
+  system("ruby scappy.rb scrap --start_page 1 --end_page 5 --category #{v} --output '#{k}.xlsx'")
   puts(">> finished process for: #{k}")
   puts
 end
