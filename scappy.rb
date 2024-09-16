@@ -60,8 +60,8 @@ if $0==__FILE__ then
             category: options.category.strip.split(',').map(&:strip).first
           )
           print("url: #{url} => ")
-          Articles.get_articles(url).each do |narticle|
-            articles << parse_narticle(narticle)
+          Articles.get_articles(url).each do |article|
+            articles << article
           end
         rescue => e  
           print("##> #{e} =>")
