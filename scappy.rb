@@ -2,6 +2,7 @@ require 'nokogiri'
 require 'rest-client'
 require 'axlsx'
 require 'commander/import'
+require_relative 'articles'
 
 URL = ->(**hash){
   base_url_str = "https://www.upwork.com/nx/search/jobs/"
@@ -14,59 +15,6 @@ URL = ->(**hash){
   [base_url_str, url_strs.join('&')].join('?')
 }
 $AP = Axlsx::Package.new
-
-def get_nokogorized_page(url)
-  headers = {
-  'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-  }
-  response = RestClient.get(url, headers: headers)
-  if response.code==200 then
-    return Nokogiri::HTML(response.body)
-  end
-  # exit(1)
-end
-
-def get_narticles(noko_page)
-  return noko_page.css('article.job-tile')
-end
-
-def parse_JobTileHeader(narticle)
-  return narticle.css('h2.job-tile-title').inner_text
-end
-
-def parse_JobTileInfoList(narticle)
-  job_tile_details = {}
-  narticle.css('ul.job-tile-info-list > li').each do |li|
-    if li['data-test'] then
-      job_tile_details[li['data-test']] = li.inner_text
-    else
-      job_tile_details[li.inner_text] = li.inner_text
-    end
-  end
-  # return job_tile_details
-  return job_tile_details.values()
-end
-
-def parse_JobTileDescription(narticle)
-  narticle.css('div[class="air3-line-clamp-wrapper clamp mb-3"]').inner_text
-end
-
-def parse_JobTileAttributes(narticle)
-  narticle.css('div[class="air3-token-container"] > span').collect do |span|
-    span.inner_text
-  end
-end
-
-# narticle => nokogorized article
-def parse_narticle(narticle)
-  {
-    "scrap-timestamp": Time.now.utc.to_s,
-    "job-title" => parse_JobTileHeader(narticle),
-    "job-info-list" => parse_JobTileInfoList(narticle).join(' -- '),
-    "job-description" => parse_JobTileDescription(narticle),
-    "job-attributes" => parse_JobTileAttributes(narticle).join(', ')
-  }
-end
 
 def update_to_excel(articles, page_no)
   $AP.workbook.add_worksheet(name: "PAGE #{page_no}") do |sheet|
@@ -112,9 +60,7 @@ if $0==__FILE__ then
             category: options.category.strip.split(',').map(&:strip).first
           )
           print("url: #{url} => ")
-          noko_page = get_nokogorized_page(url)
-          narticles = get_narticles(noko_page)
-          narticles.each do |narticle|
+          Articles.get_articles(url).each do |narticle|
             articles << parse_narticle(narticle)
           end
         rescue => e  
