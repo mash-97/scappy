@@ -1,3 +1,4 @@
+require 'async'
 require 'nokogiri'
 require 'rest-client'
 require 'axlsx'
@@ -25,10 +26,9 @@ def update_to_excel(articles, page_no)
   end
 end
 
-
+$__SYNC_TASK_TIMES__ = []
 # program starts here
 if $0==__FILE__ then
-  puts("Start Time: #{Time.now}")
   program :name, 'Scappy'
   program :version, '0.0.1'
   program :description, 'Job scrapping from UpWork'
@@ -47,36 +47,54 @@ if $0==__FILE__ then
 
 
     c.action do |args, options|
+      __start_time__ = Time.now
+      puts("> Start Time: #{__start_time__}")
       options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx"
       sp = options.start_page 
       ep = options.end_page 
 
-      (sp.to_i..ep.to_i).each do |page_no|
+      # contains list of articles 
+      articles_list = [] 
 
-        print("At page: #{page_no} => ")
-        articles = []
-        begin 
-          url = URL.call(
-            page_no: page_no, 
-            per_page: options.per_page, 
-            category: options.category.strip.split(',').map(&:strip).first
-          )
-          print("url: #{url} => ")
-          Articles.get_articles(url).each do |article|
-            articles << article
+      # start page to end page process
+      Async do |task|
+        tasks = (sp.to_i..ep.to_i).collect do |page_no|
+
+          print("\n> At page: #{page_no} => ")
+          task.async do
+            __sync_task_time_start__ = Time.now
+            begin 
+              url = URL.call(
+                page_no: page_no, 
+                per_page: options.per_page, 
+                category: options.category.strip.split(',').map(&:strip).first
+              )
+              print("url: #{url} => ")
+              articles_list << Articles.get_articles(url)
+            rescue => e  
+              print("##> #{e} =>")
+            end
+            __sync_task_time_end__ = Time.now
+            $__SYNC_TASK_TIMES__ << (__sync_task_time_end__-__sync_task_time_start__)
           end
-        rescue => e  
-          print("##> #{e} =>")
-        ensure 
-          puts("#{articles.size} articles")
-          update_to_excel(articles, page_no)
         end
+        puts("\n> Async task creation complete")
+        puts("> Now wait")
+        tasks.each(&:wait)
       end
 
-      puts("write to excel")
+      articles_list.each_with_index do |articles, page_no|
+        puts("> #{articles.size} articles")
+        update_to_excel(articles, page_no+1)
+      end
+
+      puts("> write to excel: #{options.output}")
       $AP.serialize(options.output)
+      __end_time__ = Time.now
+      puts("> Command Execution Time: #{(__end_time__-__start_time__).round(3)} seconds")
+      puts("> Sync Time Status: (Total : Avg) => (#{($__SYNC_TASK_TIMES__.sum.round(3))} : #{($__SYNC_TASK_TIMES__.sum/$__SYNC_TASK_TIMES__.size).round(3)}) seconds")
     end
+    
   end
-  puts("End Time: #{Time.now}")
 end
 
