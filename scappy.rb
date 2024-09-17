@@ -4,6 +4,7 @@ require 'rest-client'
 require 'caxlsx'
 require 'commander/import'
 require_relative 'articles'
+require_relative 'xlsx'
 
 URL = ->(**hash){
   base_url_str = "https://www.upwork.com/nx/search/jobs/"
@@ -15,10 +16,9 @@ URL = ->(**hash){
   url_strs << "subcategory2_uid=#{hash[:sub_category]}" if hash[:sub_category]
   [base_url_str, url_strs.join('&')].join('?')
 }
-$AP = Axlsx::Package.new
 
-def update_to_excel(articles, page_no)
-  $AP.workbook.add_worksheet(name: "PAGE #{page_no}") do |sheet|
+def add_to_worksheet(xlsx_obj, sheet_name, articles)
+  xlsx_obj.add_worksheet(sheet_name) do |sheet|
     sheet.add_row articles.first.keys().map(&:upcase)
     articles.each do |article|
       sheet.add_row article.values()
@@ -44,20 +44,21 @@ if $0==__FILE__ then
     c.option '--per_page NUM', Integer, 'articles per page'
     c.option '--category UIDS', String, 'category UIDS'
     c.option '--output FILENAME', String, 'output filename'
-
+    c.option '--sheet_name SHEETNAME', String, 'worksheet name'
 
     c.action do |args, options|
       __start_time__ = Time.now
       puts("> Start Time: #{__start_time__}")
-      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx"
+      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx", :sheet_name => 8.times.collect{('a'..'z').to_a.sample}.join()
       sp = options.start_page 
       ep = options.end_page 
 
       # contains list of articles 
       articles_list = [] 
+      XSLX = Xlsx.new(options.output)   # <------------------------------------------- XSLX initialize
 
       # start page to end page process
-      Async do |task|
+      Async do |task|                   # <------------------------------------------- ASYNC tasks
         tasks = (sp.to_i..ep.to_i).collect do |page_no|
 
           print("\n> At page: #{page_no} => ")
@@ -69,7 +70,7 @@ if $0==__FILE__ then
                 per_page: options.per_page, 
                 category: options.category.strip.split(',').map(&:strip).first
               )
-              print("url: #{url} => ")
+              print("url: #{url}")
               articles_list << Articles.get_articles(url)
             rescue => e  
               print("##> #{e} =>")
@@ -82,14 +83,14 @@ if $0==__FILE__ then
         puts("> Now wait")
         tasks.each(&:wait)
       end
-
-      articles_list.each_with_index do |articles, page_no|
-        puts("> #{articles.size} articles")
-        update_to_excel(articles, page_no+1)
+      
+      articles_list.select{|a|a.size>0}.each_with_index do |articles, page_no|
+        puts("> update XSLX with #{articles.size} articles")
+        add_to_worksheet(XLSX, options.sheet_name, articles)
       end
 
       puts("> write to excel: #{options.output}")
-      $AP.serialize(options.output)
+      XLSX.write()                                                      # <---------------- XLSX close
       __end_time__ = Time.now
       puts("> Command Execution Time: #{(__end_time__-__start_time__).round(3)} seconds")
       puts("> Sync Time Status: (Total : Avg) => (#{($__SYNC_TASK_TIMES__.sum.round(3))} : #{($__SYNC_TASK_TIMES__.sum/$__SYNC_TASK_TIMES__.size).round(3)}) seconds")
