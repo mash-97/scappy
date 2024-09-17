@@ -55,13 +55,11 @@ if $0==__FILE__ then
 
       # contains list of articles 
       articles_list = [] 
-      XSLX = Xlsx.new(options.output)   # <------------------------------------------- XSLX initialize
+      XLSX = Xlsx.new(options.output)   # <------------------------------------------- XLSX initialize
 
       # start page to end page process
       Async do |task|                   # <------------------------------------------- ASYNC tasks
         tasks = (sp.to_i..ep.to_i).collect do |page_no|
-
-          print("\n> At page: #{page_no} => ")
           task.async do
             __sync_task_time_start__ = Time.now
             begin 
@@ -70,7 +68,7 @@ if $0==__FILE__ then
                 per_page: options.per_page, 
                 category: options.category.strip.split(',').map(&:strip).first
               )
-              print("url: #{url}")
+              puts("..> At page: #{url}")
               articles_list << Articles.get_articles(url)
             rescue => e  
               print("##> #{e} =>")
@@ -79,18 +77,18 @@ if $0==__FILE__ then
             $__SYNC_TASK_TIMES__ << (__sync_task_time_end__-__sync_task_time_start__)
           end
         end
-        puts("\n> Async task creation complete")
-        puts("> Now wait")
+        puts("\n> Async task creation complete; #{tasks.size} tasks")
+        puts("> Now wait for data fetch")
         tasks.each(&:wait)
       end
-      
-      articles_list.select{|a|a.size>0}.each_with_index do |articles, page_no|
-        puts("> update XSLX with #{articles.size} articles")
-        add_to_worksheet(XLSX, options.sheet_name, articles)
-      end
 
+      articles_size_map = articles_list.map(&:size)
+      puts("> articles_list size map: #{articles_size_map} => Total: #{articles_size_map.sum}")
+      articles_list = articles_list.select{|a|a.size>0}.flatten
+      puts("> update XSLX with #{articles_list.size} articles")
+      add_to_worksheet(XLSX, options.sheet_name, articles_list) if articles_list.size>0
       puts("> write to excel: #{options.output}")
-      XLSX.write()                                                      # <---------------- XLSX close
+      XLSX.write() 
       __end_time__ = Time.now
       puts("> Command Execution Time: #{(__end_time__-__start_time__).round(3)} seconds")
       puts("> Sync Time Status: (Total : Avg) => (#{($__SYNC_TASK_TIMES__.sum.round(3))} : #{($__SYNC_TASK_TIMES__.sum/$__SYNC_TASK_TIMES__.size).round(3)}) seconds")

@@ -53,7 +53,7 @@ class Articles
     # narticle => nokogorized article
     def parse_narticle(narticle)
       {
-        "scrap-timestamp": Time.now.utc.to_s,
+        "scrap-timestamp"=> Time.now.utc.to_s,
         "job-title" => parse_JobTileHeader(narticle),
         "job-info-list" => parse_JobTileInfoList(narticle).join(' -- '),
         "job-description" => parse_JobTileDescription(narticle),
