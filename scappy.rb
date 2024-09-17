@@ -1,7 +1,7 @@
 require 'async'
 require 'nokogiri'
 require 'rest-client'
-require 'axlsx'
+require 'caxlsx'
 require 'commander/import'
 require_relative 'articles'
 
