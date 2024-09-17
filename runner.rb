@@ -20,7 +20,7 @@ puts()
 s = Time.now
 categories.each do |k, v|
   puts(">> start process for: #{k}")
-  system("ruby scappy.rb scrap --start_page #{ARGV[0]} --end_page #{ARGV[1]} --per_page #{per_page} --category #{v} --output '#{k}.xlsx' --sheet_name 'Run #{ARGV[3]}")
+  system("ruby scappy.rb scrap --start_page #{ARGV[0]} --end_page #{ARGV[1]} --per_page #{per_page} --category #{v} --output '#{k}.xlsx' --sheet_name '#{ARGV[3]}'")
   puts(">> finished process for: #{k}")
   puts
 end

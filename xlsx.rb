@@ -18,8 +18,8 @@ class Xlsx
 
   private
   def loadXlsx()
-    if not File.exists?(@file_name) then
-      @ap.serialize(@file_name)
+    if not File.exist?(@file_name) then
+      File.open(@file_name, "w").close()
     end
     begin 
       rxl_wrkbook = RubyXL::Parser.parse(@file_name)
