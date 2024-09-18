@@ -3,8 +3,10 @@ require 'nokogiri'
 require 'rest-client'
 require 'caxlsx'
 require 'commander/import'
+require 'yaml'
 require_relative 'articles'
 require_relative 'xlsx'
+require_relative 'batch-req'
 
 URL = ->(**hash){
   base_url_str = "https://www.upwork.com/nx/search/jobs/"
@@ -45,11 +47,12 @@ if $0==__FILE__ then
     c.option '--category UIDS', String, 'category UIDS'
     c.option '--output FILENAME', String, 'output filename'
     c.option '--sheet_name SHEETNAME', String, 'worksheet name'
+    c.option '--batch_size SIZE', Integer, 'batch size'
 
     c.action do |args, options|
       __start_time__ = Time.now
       puts("> Start Time: #{__start_time__}")
-      options.default :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx", :sheet_name => 8.times.collect{('a'..'z').to_a.sample}.join()
+      options.default :batch_size => 10, :start_page => '1', :end_page => '1', :per_page => 10, :category => "", :output => "data-#{Time.now.strftime("%y%m%d-%H%M%S")}.xlsx", :sheet_name => 8.times.collect{('a'..'z').to_a.sample}.join()
       sp = options.start_page 
       ep = options.end_page 
 
@@ -57,29 +60,38 @@ if $0==__FILE__ then
       articles_list = [] 
       XLSX = Xlsx.new(options.output)   # <------------------------------------------- XLSX initialize
 
-      # start page to end page process
-      Async do |task|                   # <------------------------------------------- ASYNC tasks
-        tasks = (sp.to_i..ep.to_i).collect do |page_no|
-          task.async do
-            __sync_task_time_start__ = Time.now
-            begin 
-              url = URL.call(
-                page_no: page_no, 
-                per_page: options.per_page, 
-                category: options.category.strip.split(',').map(&:strip).first
-              )
-              puts("..> At page: #{url}")
-              articles_list << Articles.get_articles(url)
-            rescue => e  
-              print("##> #{e} =>")
-            end
-            __sync_task_time_end__ = Time.now
-            $__SYNC_TASK_TIMES__ << (__sync_task_time_end__-__sync_task_time_start__)
-          end
+      # collect urls
+      urls = (sp.to_i..ep.to_i).collect do |page_no|
+        URL.call(
+          page_no: page_no, 
+          per_page: options.per_page, 
+          category: options.category.strip.split(',').map(&:strip).first
+        )
+      end
+
+      # async batch request
+      print("> process batch requests: ")
+      batch_request = BatchReq.new(urls, options.batch_size)
+      results = batch_request.process do |response|
+        articles = nil
+        if response.code.to_s == "200" or response.code.to_s == "202" then
+          articles = Articles.get_articles(response.body)
+          $__SYNC_TASK_TIMES__ << response.duration
+          print(".")
+        else
+          print("#")
         end
-        puts("\n> Async task creation complete; #{tasks.size} tasks")
-        puts("> Now wait for data fetch")
-        tasks.each(&:wait)
+        articles
+      end
+      puts()
+
+      results[:successful_urls].each do |url|
+        articles_list << url[:response]
+        url[:response] = "OK"
+      end
+
+      File.open("scappy-#{Time.now.strftime("%y%m%d-%H%M%S")}.log", 'w') do |f|
+        f.write(YAML.dump(results))
       end
 
       articles_size_map = articles_list.map(&:size)

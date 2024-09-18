@@ -4,10 +4,10 @@ require 'rest-client'
 $__headers__ = {}
 $__headers__[:user_agent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
-class DynamicBatchReq
+class BatchReq
   def initialize(urls, batch_size=10, max_timeout=10, max_attempts=3)
     @max_timeout = max_timeout
-    @max_attempt = max_attempts
+    @max_attempts = max_attempts
     @batch_size = batch_size
     @webclient = RestClient
     @urls = urls
@@ -29,17 +29,17 @@ class DynamicBatchReq
       batch_history: []
     }
     while not @xurls.empty? do
-      batch_size = [@batch_size, @xurls.size]
+      batch_size = [@batch_size, @xurls.size].min
       xxurls = batch_size.times.collect{@xurls.shift()}
       attempt_urls = []
       st = Time.now
       Async do
         |task|
-        tasks = xxurls.each do |xurl|
+        tasks = xxurls.collect do |xurl|
           task.async do
             xurl[:attempts] += 1
             t = Time.now
-            response = get(xurl[:url], &callback)
+            response = get(xurl[:url], @max_timeout, &callback)
             xurl[:response_times] << (Time.now-t)
 
             if response then

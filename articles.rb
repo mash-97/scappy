@@ -1,25 +1,15 @@
 require 'nokogiri'
-require 'rest-client'
 
 $CLIENT = RestClient
 class Articles
   class << self
-    def get_articles(url)
-      noko_page = get_nokogorized_page(url)
+    def get_articles(response_body)
+      noko_page = Nokogiri::HTML(response_body)
       narticles = get_narticles(noko_page)
       narticles.collect{|narticle| parse_narticle(narticle)}
     end
     
     private
-    def get_nokogorized_page(url)
-      headers = {}
-      headers[:user_agent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-      response = $CLIENT.get(url, headers: headers)
-      if response.code==200 then
-        return Nokogiri::HTML(response.body)
-      end
-      Nokogiri::HTML('')
-    end
 
     def get_narticles(noko_page)
       return noko_page.css('article.job-tile')
