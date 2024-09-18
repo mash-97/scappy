@@ -1,5 +1,6 @@
 require 'async'
 require 'rest-client'
+require 'typhoeus'
 
 $__headers__ = {}
 $__headers__[:user_agent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -33,14 +34,15 @@ class BatchReq
       xxurls = batch_size.times.collect{@xurls.shift()}
       attempt_urls = []
       st = Time.now
-      Async do
-        |task|
-        tasks = xxurls.collect do |xurl|
-          task.async do
+      begin
+        hydra = Typhoeus::Hydra.new
+        requests = xxurls.collect do |xurl| Typhoeus::Request.new(xurl[:url]) end
+        requests.each do |req| hydra.queue(req) end
+        hydra.run()
+        requests.each do |req|
             xurl[:attempts] += 1
-            t = Time.now
-            response = get(xurl[:url], @max_timeout, &callback)
-            xurl[:response_times] << (Time.now-t)
+            response = yield(req.response)
+            xurl[:response_times] << req.response.total_time
 
             if response then
               xurl[:response] = response
@@ -52,7 +54,9 @@ class BatchReq
             end
           end
         end
-        tasks.each(&:wait)
+      rescue => e  
+        puts("#>> error: #{e}")
+        exit(1)
       end
       et = Time.now
       results[:batch_history] << [batch_size, (et-st).round(3)]

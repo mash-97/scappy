@@ -74,9 +74,9 @@ if $0==__FILE__ then
       batch_request = BatchReq.new(urls, options.batch_size)
       results = batch_request.process do |response|
         articles = nil
-        if response.code.to_s == "200" or response.code.to_s == "202" then
-          articles = Articles.get_articles(response.body)
-          $__SYNC_TASK_TIMES__ << response.duration
+        if response.response_code.to_s == "200" or response.response_code.to_s == "202" then
+          articles = Articles.get_articles(response.response_body)
+          $__SYNC_TASK_TIMES__ << response.total_time
           print(".")
         else
           print("#")
