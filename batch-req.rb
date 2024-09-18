@@ -36,7 +36,7 @@ class BatchReq
       st = Time.now
       begin
         hydra = Typhoeus::Hydra.new
-        requests = xxurls.collect{|xurl| [xurl, Typhoeus::Request.new(xurl[:url])] }
+        requests = xxurls.collect{|xurl| [xurl, Typhoeus::Request.new(xurl[:url], headers: $__headers__)] }
         requests.each {|req| hydra.queue(req.last) }
         hydra.run()
         requests.each do |req|
