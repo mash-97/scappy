@@ -36,22 +36,21 @@ class BatchReq
       st = Time.now
       begin
         hydra = Typhoeus::Hydra.new
-        requests = xxurls.collect do |xurl| Typhoeus::Request.new(xurl[:url]) end
-        requests.each do |req| hydra.queue(req) end
+        requests = xxurls.collect{|xurl| Typhoeus::Request.new(xurl[:url]) }
+        requests.each {|req| hydra.queue(req) }
         hydra.run()
         requests.each do |req|
-            xurl[:attempts] += 1
-            response = yield(req.response)
-            xurl[:response_times] << req.response.total_time
+          xurl[:attempts] += 1
+          response = yield(req.response)
+          xurl[:response_times] << req.response.total_time
 
-            if response then
-              xurl[:response] = response
-              results[:successful_urls] << xurl
-            elsif xurl[:attempts] < @max_attempts
-              attempt_urls << xurl
-            else
-              results[:failed_urls] << xurl[:url]
-            end
+          if response then
+            xurl[:response] = response
+            results[:successful_urls] << xurl
+          elsif xurl[:attempts] < @max_attempts
+            attempt_urls << xurl
+          else
+            results[:failed_urls] << xurl[:url]
           end
         end
       rescue => e  
