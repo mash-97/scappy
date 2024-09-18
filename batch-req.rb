@@ -66,7 +66,8 @@ class BatchReq
     response = nil
     begin
       response = RestClient.get(url, headers: $__headers__, timeout: timeout)
-    rescue
+    rescue => e  
+      puts("#>> RestClient Error: #{e}")
       response = nil
     end
     return response ? yield(response) : nil
