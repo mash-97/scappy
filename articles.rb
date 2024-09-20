@@ -25,6 +25,9 @@ class Articles
       return noko_page.css('article.job-tile')
     end
 
+    def parse_PostedTime(narticle)
+      return narticle.css(%{div[class="d-flex flex-column job-tile-header-line-height flex-1 mr-4 mb-3 flex-wrap"]}).css(%{small[class="text-light mb-1"]}).text
+    end
     def parse_JobTileHeader(narticle)
       return narticle.css('h2.job-tile-title').inner_text
     end
@@ -56,6 +59,7 @@ class Articles
     def parse_narticle(narticle)
       {
         "scrap-timestamp"=> Time.now.utc.to_s,
+        "posted-time" => parse_PostedTime(narticle),
         "job-title" => parse_JobTileHeader(narticle),
         "job-info-list" => parse_JobTileInfoList(narticle).join(' -- '),
         "job-description" => parse_JobTileDescription(narticle),
