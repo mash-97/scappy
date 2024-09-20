@@ -69,6 +69,7 @@ if $0==__FILE__ then
         )
       end
 
+      articles_size_url_map = []
       # async batch request
       print("> process batch requests: ")
       batch_request = BatchReq.new(urls, options.batch_size)
@@ -77,6 +78,7 @@ if $0==__FILE__ then
         if response.code.to_s == "200" or response.code.to_s == "202" then
           articles = Articles.get_articles(response.body)
           $__SYNC_TASK_TIMES__ << response.duration
+          articles_size_url_map << "#{response.request.url.scan(/page=\d+/).first.scan(/\d+/).first.to_i}:#{articles.size}"
           print(".")
         else
           print("#")
@@ -99,7 +101,7 @@ if $0==__FILE__ then
       end
 
       articles_size_map = articles_list.map(&:size)
-      puts("> articles_list size map: #{articles_size_map} => Total: #{articles_size_map.sum}")
+      puts("> articles_list size map: #{articles_size_url_map} => Total: #{articles_size_map.sum}")
       articles_list = articles_list.select{|a|a.size>0}.flatten
       puts("> update XSLX with #{articles_list.size} articles")
       add_to_worksheet(XLSX, options.sheet_name, articles_list) if articles_list.size>0
