@@ -1,9 +1,10 @@
 categories = {
-  "Data Science & Analytics" => 531770282580668420,
+  # "Data Science & Analytics" => 531770282580668420,
 
-  "Engineering & Architecture"  => 531770282584862722,
+  # "Engineering & Architecture"  => 531770282584862722,
 
-  "IT & Networking" => 531770282580668419,
+  # "IT & Networking" => 531770282580668419,
+  "Sales & Marketing" => 531770282580668422,
 
   "Web, Mobile & Software Dev" => 531770282580668418
 }

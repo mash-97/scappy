@@ -91,6 +91,10 @@ if $0==__FILE__ then
       end
 
       File.open("scappy-#{Time.now.strftime("%y%m%d-%H%M%S")}.log", 'w') do |f|
+        results = {
+          successful_urls: results[:successful_urls].collect{|x|x[:url]},
+          failed_urls: results[:failed_urls].collect{|x|x[:url]}
+        }
         f.write(YAML.dump(results))
       end
 
