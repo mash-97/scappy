@@ -39,7 +39,7 @@ class Articles
     end
 
     def parse_JobTileAttributes(narticle)
-      narticle.css('div[class="air3-token-container"] > span').collect do |span|
+      narticle.css('div[class="air3-token-container"] > div > button > span').collect do |span|
         span.inner_text
       end
     end
